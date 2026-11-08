@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智能護膚日常管家</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Alpine.js for reactive UI -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <!-- Google Fonts: Inter & Noto Sans TC -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', 'Noto Sans TC', sans-serif;
+            background-color: #F8FAF7;
+            color: #2D3748;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(226, 232, 240, 0.8);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col" x-data="skincareApp()">
+
+    <!-- Header -->
+    <header class="bg-white/80 backdrop-blur-md border-b border-emerald-100 sticky top-0 z-50">
+        <div class="max-w-5xl mx-auto px-4 py-4 flex flex-col sm:flex-row justify-between items-center gap-2">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-2xl bg-emerald-600 flex items-center justify-center text-white text-xl shadow-md shadow-emerald-200">
+                    🌿
+                </div>
+                <div>
+                    <h1 class="text-lg font-bold text-gray-800 tracking-wide">智能護膚日常管家</h1>
+                    <p class="text-xs text-emerald-600 font-medium">混合肌專屬 ✦ 科學搭配與安全排程</p>
+                </div>
+            </div>
+            <!-- Navigation Tabs -->
+            <div class="flex bg-emerald-50/80 p-1 rounded-xl text-sm font-medium">
+                <button @click="currentTab = 'generator'" :class="currentTab === 'generator' ? 'bg-white text-emerald-700 shadow-sm' : 'text-gray-600 hover:text-gray-900'" class="px-4 py-2 rounded-lg transition-all duration-200">
+                    🪄 今日流程生成
+                </button>
+                <button @click="currentTab = 'inventory'" :class="currentTab === 'inventory' ? 'bg-white text-emerald-700 shadow-sm' : 'text-gray-600 hover:text-gray-900'" class="px-4 py-2 rounded-lg transition-all duration-200">
+                    🧴 我的護膚寶庫 (<span x-text="products.length"></span>)
+                </button>
+                <button @click="currentTab = 'guide'" :class="currentTab === 'guide' ? 'bg-white text-emerald-700 shadow-sm' : 'text-gray-600 hover:text-gray-900'" class="px-4 py-2 rounded-lg transition-all duration-200">
+                    💡 安全混搭指引
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-5xl mx-auto px-4 py-8 flex-grow w-full">
+
+        <!-- TAB 1: ROUTINE GENERATOR -->
+        <div x-show="currentTab === 'generator'" class="space-y-8">
+            <!-- Hero Card / Condition Selector -->
+            <div class="glass-card rounded-3xl p-6 sm:p-8 shadow-sm">
+                <div class="text-center max-w-xl mx-auto mb-6">
+                    <span class="inline-block bg-emerald-100 text-emerald-800 text-xs font-semibold px-3 py-1 rounded-full mb-2">Step 1</span>
+                    <h2 class="text-2xl font-bold text-gray-800">你今日嘅皮膚狀態係點樣？</h2>
+                    <p class="text-sm text-gray-500 mt-1">點擊下方按鈕，管家即時為你客製化今日嘅日夜精準護膚流程！</p>
+                </div>
+
+                <!-- Condition Buttons Grid -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                    <template x-for="cond in conditions" :key="cond.id">
+                        <button @click="selectedCondition = cond.id" 
+                            :class="selectedCondition === cond.id ? 'bg-emerald-600 text-white border-emerald-600 shadow-md shadow-emerald-200 ring-2 ring-emerald-400/50' : 'bg-white text-gray-700 border-gray-200 hover:border-emerald-300 hover:bg-emerald-50/30'"
+                            class="p-4 rounded-2xl border text-left transition-all duration-200 flex items-start space-x-3 group">
+                            <span class="text-2xl p-2 rounded-xl bg-white/20" x-text="cond.icon"></span>
+                            <div>
+                                <h3 class="font-bold text-sm" x-text="cond.name"></h3>
+                                <p class="text-xs mt-1 opacity-90" :class="selectedCondition === cond.id ? 'text-emerald-100' : 'text-gray-500'" x-text="cond.desc"></p>
+                            </div>
+                        </button>
+                    </template>
+                </div>
+            </div>
+
+            <!-- Dynamic Routine Output -->
+            <div class="space-y-6" x-show="selectedCondition">
+                <div class="flex items-center justify-between border-b border-gray-200 pb-3">
+                    <div class="flex items-center space-x-2">
+                        <span class="text-xs font-bold uppercase tracking-wider text-emerald-600 bg-emerald-50 px-3 py-1 rounded-md">Step 2 ✦ 專屬方案</span>
+                        <h3 class="text-lg font-bold text-gray-800" x-text="getCurrentConditionName()"></h3>
+                    </div>
+                    <span class="text-xs text-gray-400">對應你寶庫入面嘅護膚品</span>
+                </div>
+
+                <!-- Day & Night Cards Container -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    
+                    <!-- MORNING ROUTINE -->
+                    <div class="bg-white rounded-3xl p-6 border border-amber-100 shadow-sm relative overflow-hidden flex flex-col justify-between">
+                        <div class="absolute top-0 right-0 w-32 h-32 bg-amber-50 rounded-bl-full -z-0 opacity-50"></div>
+                        <div class="relative z-10">
+                            <div class="flex items-center justify-between mb-4">
+                                <div class="flex items-center space-x-2">
+                                    <div class="w-8 h-8 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center font-bold">☀️</div>
+                                    <h4 class="font-bold text-gray-800 text-lg">日頭護膚流程 (Morning)</h4>
+                                </div>
+                                <span class="text-xs bg-amber-50 text-amber-800 font-semibold px-2.5 py-1 rounded-full">抗氧 · 輕透 · 防曬</span>
+                            </div>
+
+                            <div class="space-y-3 mt-4">
+                                <template x-for="(step, index) in currentRoutine.morning" :key="index">
+                                    <div class="flex items-start space-x-3 p-3 rounded-xl bg-gray-50/80 border border-gray-100">
+                                        <span class="w-6 h-6 rounded-full bg-emerald-600 text-white text-xs font-bold flex items-center justify-center flex-shrink-0 mt-0.5" x-text="index + 1"></span>
+                                        <div class="flex-grow">
+                                            <div class="flex justify-between items-center">
+                                                <h5 class="font-bold text-sm text-gray-800" x-text="step.productName"></h5>
+                                                <span class="text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded font-medium" x-text="step.tag"></span>
+                                            </div>
+                                            <p class="text-xs text-gray-600 mt-1" x-text="step.action"></p>
+                                        </div>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+
+                        <div class="mt-6 pt-4 border-t border-gray-100 text-xs text-amber-800 bg-amber-50/50 p-3 rounded-2xl flex items-start space-x-2">
+                            <span>🛡️</span>
+                            <p><strong class="font-semibold">日頭金句：</strong> 有用維C或煥膚成分，出門前務必確實搽好防曬，避免反黑！</p>
+                        </div>
+                    </div>
+
+                    <!-- NIGHT ROUTINE -->
+                    <div class="bg-white rounded-3xl p-6 border border-indigo-100 shadow-sm relative overflow-hidden flex flex-col justify-between">
+                        <div class="absolute top-0 right-0 w-32 h-32 bg-indigo-50 rounded-bl-full -z-0 opacity-50"></div>
+                        <div class="relative z-10">
+                            <div class="flex items-center justify-between mb-4">
+                                <div class="flex items-center space-x-2">
+                                    <div class="w-8 h-8 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold">🌙</div>
+                                    <h4 class="font-bold text-gray-800 text-lg">夜晚護膚流程 (Night)</h4>
+                                </div>
+                                <span class="text-xs bg-indigo-50 text-indigo-800 font-semibold px-2.5 py-1 rounded-full" x-text="currentRoutine.nightTag"></span>
+                            </div>
+
+                            <div class="space-y-3 mt-4">
+                                <template x-for="(step, index) in currentRoutine.night" :key="index">
+                                    <div class="flex items-start space-x-3 p-3 rounded-xl bg-gray-50/80 border border-gray-100">
+                                        <span class="w-6 h-6 rounded-full bg-indigo-600 text-white text-xs font-bold flex items-center justify-center flex-shrink-0 mt-0.5" x-text="index + 1"></span>
+                                        <div class="flex-grow">
+                                            <div class="flex justify-between items-center">
+                                                <h5 class="font-bold text-sm text-gray-800" x-text="step.productName"></h5>
+                                                <span class="text-[10px] bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded font-medium" x-text="step.tag"></span>
+                                            </div>
+                                            <p class="text-xs text-gray-600 mt-1" x-text="step.action"></p>
+                                        </div>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+
+                        <div class="mt-6 pt-4 border-t border-gray-100 text-xs text-indigo-800 bg-indigo-50/50 p-3 rounded-2xl flex items-start space-x-2">
+                            <span>💡</span>
+                            <p><strong class="font-semibold">夜間提醒：</strong> <span x-text="currentRoutine.nightTip"></span></p>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 2: PRODUCT INVENTORY -->
+        <div x-show="currentTab === 'inventory'" class="space-y-6">
+            <div class="glass-card rounded-3xl p-6 sm:p-8">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+                    <div>
+                        <h2 class="text-xl font-bold text-gray-800">我的護膚品寶庫 (<span x-text="products.length"></span>款)</h2>
+                        <p class="text-xs text-gray-500 mt-1">您可以隨時在此新增或刪除您的護膚好物</p>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-2">
+                        <button @click="showAddModal = true" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-2 rounded-xl shadow-sm transition-all flex items-center space-x-1">
+                            <span>➕</span>
+                            <span>新增護膚品</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Category Filters -->
+                <div class="flex flex-wrap gap-2 mb-6 pb-4 border-b border-gray-100">
+                    <button @click="filterCategory = 'all'" :class="filterCategory === 'all' ? 'bg-emerald-600 text-white' : 'bg-white text-gray-600 border border-gray-200'" class="px-3 py-1.5 rounded-xl text-xs font-medium transition-all">全部</button>
+                    <button @click="filterCategory = 'lotion'" :class="filterCategory === 'lotion' ? 'bg-emerald-600 text-white' : 'bg-white text-gray-600 border border-gray-200'" class="px-3 py-1.5 rounded-xl text-xs font-medium transition-all">化妝水</button>
+                    <button @click="filterCategory = 'serum'" :class="filterCategory === 'serum' ? 'bg-emerald-600 text-white' : 'bg-white text-gray-600 border border-gray-200'" class="px-3 py-1.5 rounded-xl text-xs font-medium transition-all">精華</button>
+                    <button @click="filterCategory = 'active'" :class="filterCategory === 'active' ? 'bg-emerald-600 text-white' : 'bg-white text-gray-600 border border-gray-200'" class="px-3 py-1.5 rounded-xl text-xs font-medium transition-all">猛料煥膚</button>
+                    <button @click="filterCategory = 'cream'" :class="filterCategory === 'cream' ? 'bg-emerald-600 text-white' : 'bg-white text-gray-600 border border-gray-200'" class="px-3 py-1.5 rounded-xl text-xs font-medium transition-all">面霜/防曬</button>
+                </div>
+
+                <!-- Products Grid -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <template x-for="item in filteredProducts" :key="item.id">
+                        <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm hover:shadow-md transition-all flex flex-col justify-between relative group">
+                            <!-- Delete Button -->
+                            <button @click="deleteProduct(item.id)" title="刪除此產品" class="absolute top-3 right-3 w-7 h-7 bg-rose-50 text-rose-600 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-rose-100 text-xs font-bold">
+                                ✕
+                            </button>
+                            <div>
+                                <div class="flex justify-between items-start mb-3">
+                                    <span class="text-2xl p-2 rounded-xl bg-gray-50" x-text="item.icon"></span>
+                                    <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full mr-6" 
+                                        :class="{
+                                            'bg-blue-50 text-blue-700': item.cat === 'lotion',
+                                            'bg-amber-50 text-amber-700': item.cat === 'serum',
+                                            'bg-rose-50 text-rose-700': item.cat === 'active',
+                                            'bg-emerald-50 text-emerald-700': item.cat === 'cream'
+                                        }" 
+                                        x-text="item.catName"></span>
+                                </div>
+                                <h3 class="font-bold text-sm text-gray-800" x-text="item.name"></h3>
+                                <p class="text-xs text-gray-500 mt-1 font-medium" x-text="item.brand"></p>
+                                <p class="text-xs text-gray-600 mt-2 line-clamp-2" x-text="item.effect"></p>
+                            </div>
+                            <div class="mt-4 pt-3 border-t border-gray-50 flex items-center justify-between text-[11px] text-gray-400">
+                                <span>核心成分：</span>
+                                <span class="font-medium text-emerald-700" x-text="item.core"></span>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 3: SAFETY & LAYERING GUIDE -->
+        <div x-show="currentTab === 'guide'" class="space-y-6">
+            <div class="glass-card rounded-3xl p-6 sm:p-8 space-y-6">
+                <div>
+                    <h2 class="text-xl font-bold text-gray-800">💡 猛料成分安全混搭指引</h2>
+                    <p class="text-xs text-gray-500 mt-1">混合肌如何安全疊加酸類、A醇與維他命C？避免爛面必看！</p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="bg-rose-50/60 border border-rose-100 rounded-2xl p-5">
+                        <div class="flex items-center space-x-2 text-rose-700 font-bold mb-2">
+                            <span>❌</span>
+                            <h4>絕對不能同晚疊加的組合</h4>
+                        </div>
+                        <ul class="text-xs text-gray-700 space-y-2 list-disc list-inside">
+                            <li><strong class="text-rose-800">CNP酸類 + A醇：</strong>兩者皆強效更新角質，同晚疊擦會直接破壞皮膚屏障，導致紅腫脫皮。</li>
+                            <li><strong class="text-rose-800">高濃度維C + A醇：</strong>刺激性過高，容易過度刺激敏感。</li>
+                            <li><strong class="text-rose-800">CNP酸類 + 奇異果維C：</strong>日間或夜間同時使用酸類加高濃度維C，容易引起刺痛。</li>
+                        </ul>
+                    </div>
+
+                    <div class="bg-emerald-50/60 border border-emerald-100 rounded-2xl p-5">
+                        <div class="flex items-center space-x-2 text-emerald-700 font-bold mb-2">
+                            <span>✅</span>
+                            <h4>正確的輪流交替原則 (梅花間竹)</h4>
+                        </div>
+                        <ul class="text-xs text-gray-700 space-y-2 list-disc list-inside">
+                            <li><strong class="text-emerald-800">日頭：</strong>專注抗氧保濕（奇異果維C或綠蕃茄） + 必備防曬 (Round Lab)。</li>
+                            <li><strong class="text-emerald-800">酸類夜（一週 2 晚）：</strong>化妝水 -> CNP粉刺安瓶 (局部T字位) -> 修護霜。</li>
+                            <li><strong class="text-emerald-800">A醇夜（一週 1-2 晚）：</strong>化妝水 -> A醇 (全臉薄搽) -> 金色面霜 (三明治鎖水)。</li>
+                            <li><strong class="text-emerald-800">日常修護夜：</strong>使用綠蕃茄精華或外泌體修護霜作日常穩膚保濕。</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- ADD PRODUCT MODAL -->
+    <div x-show="showAddModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4" x-cloak>
+        <div class="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-xl space-y-6">
+            <div class="flex justify-between items-center border-b border-gray-100 pb-4">
+                <h3 class="font-bold text-lg text-gray-800">✨ 新增護膚好物</h3>
+                <button @click="showAddModal = false" class="text-gray-400 hover:text-gray-600 text-sm font-bold">✕</button>
+            </div>
+
+            <form @submit.prevent="addProduct" class="space-y-4 text-xs">
+                <div>
+                    <label class="block font-medium text-gray-700 mb-1">產品名稱 *</label>
+                    <input type="text" x-model="newForm.name" required placeholder="例如：積雪草舒緩爽膚水" class="w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                </div>
+
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block font-medium text-gray-700 mb-1">品牌 / 系列</label>
+                        <input type="text" x-model="newForm.brand" placeholder="例如：Skin1004" class="w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                    </div>
+                    <div>
+                        <label class="block font-medium text-gray-700 mb-1">分類</label>
+                        <select x-model="newForm.cat" @change="updateCatName" class="w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                            <option value="lotion">化妝水</option>
+                            <option value="serum">精華</option>
+                            <option value="active">猛料煥膚</option>
+                            <option value="cream">面霜/防曬</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block font-medium text-gray-700 mb-1">圖標 Emoji</label>
+                        <input type="text" x-model="newForm.icon" placeholder="💧" class="w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                    </div>
+                    <div>
+                        <label class="block font-medium text-gray-700 mb-1">核心成分</label>
+                        <input type="text" x-model="newForm.core" placeholder="例如：積雪草" class="w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block font-medium text-gray-700 mb-1">主要功效簡述</label>
+                    <input type="text" x-model="newForm.effect" placeholder="例如：迅速退紅舒緩，溫和保濕" class="w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                </div>
+
+                <div class="flex justify-end space-x-2 pt-4 border-t border-gray-100">
+                    <button type="button" @click="showAddModal = false" class="px-4 py-2 rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-50">取消</button>
+                    <button type="submit" class="px-5 py-2 rounded-xl bg-emerald-600 text-white font-bold hover:bg-emerald-700 shadow-sm">確認新增</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="text-center py-6 text-xs text-gray-400 border-t border-gray-100 bg-white/55 mt-auto">
+        <p>智能護膚日常管家 ✦ 專為混合肌打造的科學保養指南</p>
+    </footer>
+
+    <!-- Alpine.js Application Logic -->
+    <script>
+        function skincareApp() {
+            return {
+                currentTab: 'generator',
+                selectedCondition: 'stable',
+                filterCategory: 'all',
+                showAddModal: false,
+
+                newForm: {
+                    name: '',
+                    brand: '',
+                    cat: 'serum',
+                    catName: '精華',
+                    icon: '🧴',
+                    effect: '',
+                    core: ''
+                },
+                
+                products: [
+                    { id: 1, name: '肌研化妝水', brand: '肌研 (Hada Labo)', cat: 'lotion', catName: '化妝水', icon: '💧', effect: '深層拍打補水，為後續保養打底', core: '透明質酸' },
+                    { id: 2, name: '奇異果維他命C精華', brand: 'Holika Holika', cat: 'serum', catName: '精華', icon: '🥝', effect: '強力抗氧、去黃淡印、提亮膚色', core: '純維C + 熊果苷' },
+                    { id: 3, name: '綠蕃茄精華', brand: '韓系人氣品牌', cat: 'serum', catName: '精華', icon: '🍅', effect: '溫和收緊毛孔、彈力緊緻', core: '綠蕃茄萃取 + PHA' },
+                    { id: 4, name: 'CNP粉刺安瓶', brand: 'CNP Laboratory', cat: 'active', catName: '猛料煥膚', icon: '🫧', effect: '溶解角質、淨化毛孔、對付黑頭粉刺', core: '多重酸類 (杏仁酸/水楊酸)' },
+                    { id: 5, name: 'A醇精華', brand: '專業抗老系列', cat: 'active', catName: '猛料煥膚', icon: '✨', effect: '抗衰老、更新角質、細緻紋理', core: 'Retinol (A醇)' },
+                    { id: 6, name: '極潤金色面霜', brand: '肌研 (Hada Labo)', cat: 'cream', catName: '面霜', icon: '🟡', effect: '深層滋潤、強力鎖水，適合U字位', core: '多重玻尿酸' },
+                    { id: 7, name: '白樺樹補水防曬霜', brand: 'Round Lab', cat: 'cream', catName: '防曬', icon: '☀️', effect: '極清爽水潤、不黏笠、高倍防曬', core: '白樺樹汁 + 玻尿酸' },
+                    { id: 8, name: '外泌體修護霜', brand: '高機能修護系列', cat: 'cream', catName: '面霜/修護', icon: '🌿', effect: '深層細胞修復、退紅鎮靜、強化屏障', core: '外泌體 + 積雪草' }
+                ],
+
+                conditions: [
+                    { id: 'stable', name: '穩定日常', icon: '☀️', desc: '常規基礎保濕與防護，維持皮膚穩定' },
+                    { id: 'brightening', name: '美白去黃 / 暗瘡印', icon: '✨', desc: '集中狙擊黑色素、去黃淡印、均勻膚色' },
+                    { id: 'pores', name: '毛孔粗大 / 控油黑頭', icon: '💧', desc: '針對T字位出油、溶解角質與黑頭粉刺' },
+                    { id: 'antiaging', name: '抗老緊緻 (想用A醇)', icon: '🌙', desc: '夜間A醇抗衰老、細緻紋理與彈力緊緻' },
+                    { id: 'sensitive', name: '敏感泛紅 / 急救修護', icon: '🚨', desc: '屏障受損、退紅鎮靜、純保濕修護' }
+                ],
+
+                get filteredProducts() {
+                    if (this.filterCategory === 'all') return this.products;
+                    return this.products.filter(p => p.cat === this.filterCategory);
+                },
+
+                updateCatName() {
+                    const map = {
+                        lotion: '化妝水',
+                        serum: '精華',
+                        active: '猛料煥膚',
+                        cream: '面霜/防曬'
+                    };
+                    this.newForm.catName = map[this.newForm.cat] || '精華';
+                },
+
+                addProduct() {
+                    const newId = this.products.length > 0 ? Math.max(...this.products.map(p => p.id)) + 1 : 1;
+                    this.products.push({
+                        id: newId,
+                        name: this.newForm.name,
+                        brand: this.newForm.brand || '自選品牌',
+                        cat: this.newForm.cat,
+                        catName: this.newForm.catName,
+                        icon: this.newForm.icon || '🧴',
+                        effect: this.newForm.effect || '日常修護與保養',
+                        core: this.newForm.core || '精選成分'
+                    });
+
+                    // Reset form & close modal
+                    this.newForm = { name: '', brand: '', cat: 'serum', catName: '精華', icon: '🧴', effect: '', core: '' };
+                    this.showAddModal = false;
+                },
+
+                deleteProduct(id) {
+                    if (confirm('確定要從寶庫中刪除這款護膚品嗎？')) {
+                        this.products = this.products.filter(p => p.id !== id);
+                    }
+                },
+
+                getCurrentConditionName() {
+                    const found = this.conditions.find(c => c.id === this.selectedCondition);
+                    return found ? found.name : '';
+                },
+
+                get currentRoutine() {
+                    switch(this.selectedCondition) {
+                        case 'brightening':
+                            return {
+                                morning: [
+                                    { productName: '肌研化妝水', tag: '化妝水', action: '拍勻全臉，為肌膚補充水分基礎。' },
+                                    { productName: '奇異果維他命C精華', tag: '精華 (美白抗氧)', action: '全臉適量塗抹，阻斷黑色素並提亮膚色。' },
+                                    { productName: '肌研極潤金色面霜', tag: '面霜 (鎖水)', action: 'U字位及乾燥處薄塗鎖水。' },
+                                    { productName: 'Round Lab白樺樹防曬', tag: '防曬 (必備)', action: '均勻塗抹全臉，保護剛提亮的肌膚免受紫外線傷害。' }
+                                ],
+                                nightTag: '美白去黃夜',
+                                night: [
+                                    { productName: '肌研化妝水', tag: '化妝水', action: '潔面後拍勻全臉。' },
+                                    { productName: '奇異果維他命C精華', tag: '精華 (加強淡印)', action: '重点疊擦於暗瘡印或膚色黯沉位置。' },
+                                    { productName: '外泌體修護霜', tag: '修護面霜', action: '全臉厚敷薄塗皆可，夜間修護肌膚屏障。' }
+                                ],
+                                nightTip: '維C夜間搭配修護霜，溫和去黃不刺激，隔天皮膚透亮有光澤。'
+                            };
+
+                        case 'pores':
+                            return {
+                                morning: [
+                                    { productName: '肌研化妝水', tag: '化妝水', action: '拍勻全臉補水。' },
+                                    { productName: '綠蕃茄精華', tag: '精華 (毛孔護理)', action: '全臉或毛孔粗大處輕拍，幫助緊緻毛孔。' },
+                                    { productName: 'Round Lab白樺樹防曬', tag: '防曬', action: '清爽防曬全臉防護，不給毛孔增添負擔。' }
+                                ],
+                                nightTag: '毛孔淨化夜 (酸類護理)',
+                                night: [
+                                    { productName: '肌研化妝水', tag: '化妝水', action: '拍勻全臉。' },
+                                    { productName: 'CNP粉刺安瓶', tag: '猛料煥膚', action: '點印於 T字位、鼻翼、容易長黑頭粉刺的局部位置。' },
+                                    { productName: '外泌體修護霜', tag: '舒緩面霜', action: '全臉薄塗，鎮靜用酸後的皮膚，維持水油平衡。' }
+                                ],
+                                nightTip: 'CNP酸類一星期用2-3次即可，切勿天天全臉狂刷，以免破壞屏障！'
+                            };
+
+                        case 'antiaging':
+                            return {
+                                morning: [
+                                    { productName: '肌研化妝水', tag: '化妝水', action: '拍勻全臉。' },
+                                    { productName: '奇異果維他命C精華', tag: '精華', action: '日頭抗氧提亮，提升肌膚防禦力。' },
+                                    { productName: 'Round Lab白樺樹防曬', tag: '防曬', action: '使用A醇後日頭防曬更加不可或缺！' }
+                                ],
+                                nightTag: 'A醇抗老夜',
+                                night: [
+                                    { productName: '肌研化妝水', tag: '化妝水', action: '拍勻全臉補水打底。' },
+                                    { productName: 'A醇精華', tag: '猛料抗老', action: '全臉薄搽一層（避開眼周），更新角質、對抗細紋。' },
+                                    { productName: '肌研極潤金色面霜', tag: '鎖水面霜', action: '利用金色面霜做三明治保濕，防止A醇帶來乾燥脫皮。' }
+                                ],
+                                nightTip: '初試A醇建議一星期1-2次，今晚絕對不能疊加CNP酸類或維C精華。'
+                            };
+
+                        case 'sensitive':
+                            return {
+                                morning: [
+                                    { productName: '肌研化妝水', tag: '化妝水', action: '輕柔拍勻全臉。' },
+                                    { productName: '外泌體修護霜', tag: '修護面霜', action: '薄塗全臉，舒緩泛紅敏感。' },
+                                    { productName: 'Round Lab白樺樹防曬', tag: '防曬', action: '敏感期溫和防曬，保護脆弱肌膚。' }
+                                ],
+                                nightTag: '極簡舒緩急救夜',
+                                night: [
+                                    { productName: '肌研化妝水', tag: '化妝水', action: '拍勻全臉。' },
+                                    { productName: '外泌體修護霜', tag: '修護急救', action: '厚敷於泛紅受損部位，深層修復細胞屏障。' }
+                                ],
+                                nightTip: '敏感泛紅期間，所有酸類 (CNP)、A醇、高濃度維C全部暫停！單純用修護霜即可。'
+                            };
+
+                        default: // stable
+                            return {
+                                morning: [
+                                    { productName: '肌研化妝水', tag: '化妝水', action: '拍勻全臉補水。' },
+                                    { productName: '綠蕃茄精華', tag: '精華', action: '清爽保濕，維持毛孔細緻。' },
+                                    { productName: 'Round Lab白樺樹防曬', tag: '防曬', action: '白樺樹防曬全臉塗抹，清爽不黏笠。' }
+                                ],
+                                nightTag: '日常穩膚夜',
+                                night: [
+                                    { productName: '肌研化妝水', tag: '化妝水', action: '拍勻全臉。' },
+                                    { productName: '綠蕃茄精華', tag: '精華', action: '全臉保養，維持肌膚彈潤。' },
+                                    { productName: '外泌體修護霜', tag: '面霜', action: '適量塗抹全臉鎖水，安穩入睡。' }
+                                ],
+                                nightTip: '狀態穩定時保持簡單的保濕與修護，就是混合肌最好的保養！'
+                            };
+                    }
+                }
+            }
+        }
+    </script>
+</body>
+</html>
